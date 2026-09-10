@@ -33,7 +33,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install langchain-google-genai markdown
+          pip install langchain-google-genai markdown tkcalendar
 
       - name: AI 트레이딩 에이전트 분석 실행 (원격 헤드리스)
         env:
