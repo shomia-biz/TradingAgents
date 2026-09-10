@@ -1,12 +1,12 @@
-import sys
-import os
 import datetime
+import sys
+import tkinter as tk
 import webbrowser
 from pathlib import Path
-import tkinter as tk
 from tkinter import messagebox
-from tkcalendar import DateEntry
+
 import markdown
+from tkcalendar import DateEntry
 
 # 윈도우 환경에서 특수 기호나 다국어 출력 시 발생하는 인코딩(cp949) 오류 방지
 if hasattr(sys.stdout, "reconfigure"):
@@ -14,8 +14,8 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
-from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
+from tradingagents.graph.trading_graph import TradingAgentsGraph
 
 # 자주 검색하는 한글 종목명을 티커 코드로 자동 변환해주는 사전
 KOREAN_TICKER_MAP = {
@@ -397,8 +397,8 @@ def save_html_report(md_content: str, display_name: str, trade_date: str, decisi
         <div class="header-card">
             <h1>📈 AI 종합 트레이딩 분석 리포트</h1>
             <div class="header-meta">
-                <strong>분석 종목:</strong> {display_name} &nbsp;|&nbsp; 
-                <strong>분석 기준일:</strong> {trade_date} &nbsp;|&nbsp; 
+                <strong>분석 종목:</strong> {display_name} &nbsp;|&nbsp;
+                <strong>분석 기준일:</strong> {trade_date} &nbsp;|&nbsp;
                 <strong>리포트 생성 시각:</strong> {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
             </div>
             <div>
@@ -490,15 +490,15 @@ if __name__ == "__main__":
     html_file = save_html_report(md_text, display_name, target_date, decision, report_dir, memory_file_path)
 
     print("\n" + "=" * 65)
-    print(f"📄 [리포트 파일 저장 완료]")
+    print("📄 [리포트 파일 저장 완료]")
     print(f" - 저장 폴더: {report_dir.resolve()}")
     print(f" - 마크다운: {md_file.name}")
     print(f" - 웹 브라우저 리포트: {html_file.name}")
     print("=" * 65)
-    print(f"💡 [실무 활용 포인트: 디시전 로그(trading_memory.md) 추적]")
+    print("💡 [실무 활용 포인트: 디시전 로그(trading_memory.md) 추적]")
     print(f" - 저장 위치: {memory_file_path}")
-    print(f" - 이번 판단 결과가 누적되었으며, 실제 매매 후 실현 수익률을")
-    print(f"   반영(Reflection)하면 실행을 거듭할수록 Gemini의 판단 정밀도가 높아집니다.")
+    print(" - 이번 판단 결과가 누적되었으며, 실제 매매 후 실현 수익률을")
+    print("   반영(Reflection)하면 실행을 거듭할수록 Gemini의 판단 정밀도가 높아집니다.")
     print("=" * 65)
 
     # 기본 웹 브라우저로 리포트 자동 열기

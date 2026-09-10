@@ -1,7 +1,7 @@
-import os
+import datetime
 import re
 import shutil
-import datetime
+import sys
 from pathlib import Path
 
 
@@ -75,7 +75,7 @@ tags: ["AI주식분석", "{display_name}", "{decision_text}", "TradingAgents"]
 ---
 
 > 📊 **[👉 전체 웹 브라우저 상세 리포트 새 창으로 열기]({web_relative_url})**
-> 
+>
 > *본 리포트는 Google Gemini 멀티 에이전트 기반 금융 분석 시스템이 자동으로 작성한 분석 보고서입니다.*
 
 ---
