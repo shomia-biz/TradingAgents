@@ -1,0 +1,62 @@
+name: Remote AI Trading Analysis
+
+on:
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: "분석할 종목명 또는 티커 (예: 삼성전자, 005930.KS, NVDA, 테슬라)"
+        required: true
+        default: "005930.KS"
+      target_date:
+        description: "분석 기준일 (YYYY-MM-DD, 비워두면 오늘 날짜)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 파이썬 3.10 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: 필수 패키지 설치
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install langchain-google-genai markdown
+
+      - name: AI 트레이딩 에이전트 분석 실행 (원격 헤드리스)
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          PYTHONIOENCODING: "utf-8"
+        run: |
+          TARGET_TICKER="${{ inputs.ticker }}"
+          TARGET_DATE="${{ inputs.target_date }}"
+          
+          if [ -z "$TARGET_DATE" ]; then
+            TARGET_DATE=$(date +%Y-%m-%d)
+          fi
+          
+          echo "=========================================="
+          echo "▶ 원격 분석 종목: $TARGET_TICKER"
+          echo "▶ 분석 기준일: $TARGET_DATE"
+          echo "=========================================="
+          
+          python run_gemini.py "$TARGET_TICKER" "$TARGET_DATE"
+
+      - name: 생성된 리포트(HTML/MD) 다운로드용 아티팩트 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: trading-report-${{ inputs.ticker }}
+          path: reports/
+          retention-days: 30
