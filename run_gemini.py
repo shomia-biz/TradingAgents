@@ -1,12 +1,9 @@
 import datetime
 import sys
-import tkinter as tk
 import webbrowser
 from pathlib import Path
-from tkinter import messagebox
 
 import markdown
-from tkcalendar import DateEntry
 
 # 윈도우 환경에서 특수 기호나 다국어 출력 시 발생하는 인코딩(cp949) 오류 방지
 if hasattr(sys.stdout, "reconfigure"):
@@ -129,6 +126,16 @@ def get_user_inputs():
         return ticker, kor_name, today_str
 
     selected_inputs = {"ticker": "005930.KS", "kor_name": "삼성전자", "date": "2026-09-01", "submitted": False}
+
+    # GUI(달력 팝업)를 사용할 수 있는 환경인지 확인하고 지연 로딩
+    try:
+        import tkinter as tk
+        from tkinter import messagebox
+
+        from tkcalendar import DateEntry
+    except (ImportError, Exception):
+        # 깃허브 액션 등 화면(GUI)이 없는 리눅스 서버 환경에서는 기본값으로 즉시 진행
+        return selected_inputs["ticker"], selected_inputs["kor_name"], selected_inputs["date"]
 
     root = tk.Tk()
     root.title("TradingAgents - 종목 및 기준일 선택")
