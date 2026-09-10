@@ -4,26 +4,36 @@ import shutil
 import sys
 from pathlib import Path
 
+# 실제 배포되는 Cloudflare Pages 기본 도메인
+LOUNGE_BASE_URL = "https://deep-dive-lounge.pages.dev"
+
 
 def export_report_to_lounge(report_dir_path: Path, lounge_root: Path = None) -> dict:
     """
     TradingAgents 분석 결과(report.html, complete_report.md)를
-    deep-dive-lounge 웹사이트의 정적 리포트 및 블로그 게시글로 자동 내보내기
+    deep-dive-lounge 웹사이트(https://deep-dive-lounge.pages.dev)의
+    정적 리포트 및 블로그 게시글로 자동 내보내기
     """
     report_dir = Path(report_dir_path).resolve()
     if not report_dir.exists():
         raise FileNotFoundError(f"리포트 폴더를 찾을 수 없습니다: {report_dir}")
 
-    # deep-dive-lounge 기본 경로
+    # deep-dive-lounge 기본 경로 (로컬 또는 CI 환경)
     if lounge_root is None:
-        lounge_root = Path(r"d:\Data\_Vibe-Coding\deep-dive-lounge")
-    lounge_root = Path(lounge_root).resolve()
+        env_lounge = Path(r"d:\Data\_Vibe-Coding\deep-dive-lounge")
+        if env_lounge.exists():
+            lounge_root = env_lounge
+        else:
+            # 깃허브 액션 환경 등에서 같은 상위 디렉토리에 클론된 경우
+            sibling_lounge = Path("deep-dive-lounge")
+            lounge_root = sibling_lounge if sibling_lounge.exists() else env_lounge
 
+    lounge_root = Path(lounge_root).resolve()
     if not lounge_root.exists():
         raise FileNotFoundError(f"deep-dive-lounge 프로젝트 폴더를 찾을 수 없습니다: {lounge_root}")
 
     folder_name = report_dir.name
-    # 예: 005930.KS(삼성전자)_2026-09-10_230614
+    # 예: 005380.KS(현대자동차)_2026-09-10_20260910_160143
     html_file = report_dir / "report.html"
     md_file = report_dir / "complete_report.md"
 
@@ -38,6 +48,7 @@ def export_report_to_lounge(report_dir_path: Path, lounge_root: Path = None) -> 
 
     shutil.copytree(report_dir, public_reports_dir, dirs_exist_ok=True)
     web_relative_url = f"/reports/{folder_name}/report.html"
+    web_absolute_url = f"{LOUNGE_BASE_URL}{web_relative_url}"
 
     # =========================================================================
     # 2. deep-dive-lounge/src/content/posts 에 블로그 포스트(.md) 자동 생성
@@ -46,7 +57,6 @@ def export_report_to_lounge(report_dir_path: Path, lounge_root: Path = None) -> 
     posts_dir.mkdir(parents=True, exist_ok=True)
 
     # 폴더명에서 종목 정보 및 날짜 추출
-    # 형식: {display_name}_{date}_{time}
     parts = folder_name.split("_")
     display_name = parts[0] if len(parts) >= 1 else "주식분석"
     trade_date = parts[1] if len(parts) >= 2 else datetime.date.today().strftime("%Y-%m-%d")
@@ -74,7 +84,7 @@ category: "AI 주식 분석"
 tags: ["AI주식분석", "{display_name}", "{decision_text}", "TradingAgents"]
 ---
 
-> 📊 **[👉 전체 웹 브라우저 상세 리포트 새 창으로 열기]({web_relative_url})**
+> 📊 **[👉 전체 웹 브라우저 상세 리포트 새 창으로 열기]({web_absolute_url})**
 >
 > *본 리포트는 Google Gemini 멀티 에이전트 기반 금융 분석 시스템이 자동으로 작성한 분석 보고서입니다.*
 
@@ -90,7 +100,7 @@ tags: ["AI주식분석", "{display_name}", "{decision_text}", "TradingAgents"]
 {md_content}
 
 ---
-*Generated automatically by TradingAgents for Deep Dive Lounge*
+*Generated automatically by TradingAgents for Deep Dive Lounge ({LOUNGE_BASE_URL})*
 """
 
     post_file = posts_dir / f"{slug}.md"
@@ -98,6 +108,7 @@ tags: ["AI주식분석", "{display_name}", "{decision_text}", "TradingAgents"]
 
     return {
         "web_url": web_relative_url,
+        "full_url": web_absolute_url,
         "public_path": public_reports_dir,
         "post_path": post_file,
         "slug": slug,
@@ -105,24 +116,34 @@ tags: ["AI주식분석", "{display_name}", "{decision_text}", "TradingAgents"]
 
 
 if __name__ == "__main__":
-    # 가장 최신 리포트 폴더 자동 탐색 및 내보내기 테스트
-    reports_base = Path("reports")
-    if not reports_base.exists():
-        print("[안내] 아직 생성된 reports 폴더가 없습니다.")
-        sys.exit(0)
+    # 특정 폴더 경로 인자가 주어진 경우
+    target_report_dir = None
+    target_lounge_dir = None
 
-    subdirs = sorted([d for d in reports_base.iterdir() if d.is_dir()], key=lambda d: d.stat().st_mtime, reverse=True)
-    if not subdirs:
-        print("[안내] 내보낼 리포트 폴더가 없습니다.")
-        sys.exit(0)
+    if len(sys.argv) >= 2:
+        target_report_dir = Path(sys.argv[1])
+    if len(sys.argv) >= 3:
+        target_lounge_dir = Path(sys.argv[2])
 
-    latest_report = subdirs[0]
-    print(f"▶ 최근 리포트 감지: {latest_report.name}")
-    res = export_report_to_lounge(latest_report)
+    if target_report_dir is None:
+        reports_base = Path("reports")
+        if not reports_base.exists():
+            print("[안내] 아직 생성된 reports 폴더가 없습니다.")
+            sys.exit(0)
 
-    print("\n" + "=" * 60)
+        subdirs = sorted([d for d in reports_base.iterdir() if d.is_dir()], key=lambda d: d.stat().st_mtime, reverse=True)
+        if not subdirs:
+            print("[안내] 내보낼 리포트 폴더가 없습니다.")
+            sys.exit(0)
+
+        target_report_dir = subdirs[0]
+
+    print(f"▶ 대상 리포트: {target_report_dir.name}")
+    res = export_report_to_lounge(target_report_dir, target_lounge_dir)
+
+    print("\n" + "=" * 65)
     print("🚀 [deep-dive-lounge 웹사이트 업로드 완료!]")
     print(f" - 정적 웹 리포트 복사: {res['public_path']}")
     print(f" - 블로그 게시글 생성: {res['post_path']}")
-    print(f" - 웹 접속 상대 경로: {res['web_url']}")
-    print("=" * 60)
+    print(f" - 배포 웹 접속 주소: {res['full_url']}")
+    print("=" * 65)

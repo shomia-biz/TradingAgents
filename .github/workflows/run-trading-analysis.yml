@@ -42,17 +42,43 @@ jobs:
         run: |
           TARGET_TICKER="${{ inputs.ticker }}"
           TARGET_DATE="${{ inputs.target_date }}"
-          
+
           if [ -z "$TARGET_DATE" ]; then
             TARGET_DATE=$(date +%Y-%m-%d)
           fi
-          
+
           echo "=========================================="
           echo "▶ 원격 분석 종목: $TARGET_TICKER"
           echo "▶ 분석 기준일: $TARGET_DATE"
           echo "=========================================="
-          
+
           python run_gemini.py "$TARGET_TICKER" "$TARGET_DATE"
+
+      - name: deep-dive-lounge 웹사이트 자동 배포 (https://deep-dive-lounge.pages.dev)
+        if: success()
+        env:
+          GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          echo "=========================================="
+          echo "▶ deep-dive-lounge 웹사이트로 자동 게시 시도..."
+          echo "=========================================="
+
+          # deep-dive-lounge 저장소 클론
+          if git clone https://x-access-token:${GH_PAT}@github.com/shomia-biz/deep-dive-lounge.git lounge_repo; then
+            LATEST_DIR=$(ls -td reports/*/ | head -n 1)
+            python export_to_lounge.py "$LATEST_DIR" "lounge_repo"
+
+            cd lounge_repo
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/reports src/content/posts
+            if git commit -m "feat(report): add AI trading report for ${{ inputs.ticker }}"; then
+              git push origin main || echo "⚠️ [안내] deep-dive-lounge 푸시 권한 확인이 필요합니다."
+              echo "🎉 https://deep-dive-lounge.pages.dev 에 리포트 배포 완료!"
+            fi
+          else
+            echo "⚠️ [안내] deep-dive-lounge 저장소 접근 권한이 없어 다운로드 아티팩트로만 보관됩니다."
+          fi
 
       - name: 생성된 리포트(HTML/MD) 다운로드용 아티팩트 업로드
         uses: actions/upload-artifact@v4
