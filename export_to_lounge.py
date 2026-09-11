@@ -68,9 +68,13 @@ def export_report_to_lounge(report_dir_path: Path, lounge_root: Path = None) -> 
 
     md_content = md_file.read_text(encoding="utf-8") if md_file.exists() else ""
 
-    # 투자의견 추출
-    decision_match = re.search(r"FINAL TRANSACTION PROPOSAL:\s*\*\*?(BUY|HOLD|SELL)\*\*?", md_content, re.IGNORECASE)
-    decision_text = decision_match.group(1).upper() if decision_match else "HOLD"
+    # 최종 투자의견 추출 (포트폴리오 매니저의 최종 Rating 또는 마지막 최종 제안값 추출)
+    rating_match = re.search(r"\*\*Rating\*\*:\s*([A-Za-z]+)", md_content, re.IGNORECASE)
+    if rating_match:
+        decision_text = rating_match.group(1).upper()
+    else:
+        all_proposals = list(re.finditer(r"FINAL TRANSACTION PROPOSAL:\s*\*\*?(BUY|HOLD|SELL)\*\*?", md_content, re.IGNORECASE))
+        decision_text = all_proposals[-1].group(1).upper() if all_proposals else "HOLD"
 
     title = f"[{decision_text}] {display_name} AI 심층 트레이딩 분석 리포트"
     summary = f"Gemini 멀티 에이전트(시장·뉴스·재무·토론)가 도출한 {display_name}의 투자 의사결정({decision_text}) 및 심층 분석 리포트입니다."
